@@ -1,0 +1,30 @@
+# 依赖
+node_modules/
+.pnpm-store/
+
+# 打包产物
+*.tgz
+*.tar.gz
+
+# 日志与临时文件
+*.log
+npm-debug.log*
+.tmp/
+tmp/
+
+# 本机环境
+.DS_Store
+Thumbs.db
+desktop.ini
+.env
+.env.*
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*~
+
+# AI 工作记忆与工具配置（个人工作区，不随仓库分发）
+.workbuddy/
+.claude/

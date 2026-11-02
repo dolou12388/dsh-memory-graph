@@ -1,6 +1,6 @@
 {
   "name": "dsh-memory-graph",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "记忆图谱：把 dsh-memory-hybrid 的记忆画成可交互的星图",
   "type": "module",
   "main": "./src/index.js",
@@ -14,6 +14,17 @@
     "client.js",
     "cordis.patch.yml"
   ],
+  "scripts": {
+    "test": "node test/run-all.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dolou12388/dsh-memory-graph.git"
+  },
+  "homepage": "https://github.com/dolou12388/dsh-memory-graph#readme",
+  "bugs": {
+    "url": "https://github.com/dolou12388/dsh-memory-graph/issues"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

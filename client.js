@@ -28,7 +28,7 @@ window.__ModuleLoader__.load({
     const NS = "dsh-memory-graph";
     /** 跨包契约：核心插件的 RPC 通道（见 plugin/src/graph/rpc.js）。 */
     const CHANNEL = "/memory-hybrid";
-    const CLIENT_VERSION = "0.2.1";
+    const CLIENT_VERSION = "0.3.0";
 
     const KIND = {
       episodic:   { color: "#9B8CFF", label: "情节" },

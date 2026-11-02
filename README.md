@@ -23,14 +23,21 @@
 ## 安装
 
 ```bash
-# 与核心同仓库，用 link 装（改代码即时生效）
-dsh plugin --profile <你的 profile> add "link:<本仓库>/graph"
+# 从 GitHub 装（任意目录执行，不依赖本地仓库）
+dsh plugin --profile <你的 profile> add "github:dolou12388/dsh-memory-graph"
+
+# 或用本地源码目录（改代码即时生效）
+dsh plugin --profile <你的 profile> add "link:<本仓库路径>"
 
 # 确认层已登记
 dsh --profile <你的 profile> --dump-config | grep memory-graph
 ```
 
 装完重启 dsh，侧栏会出现「图谱」图标。
+
+> `github:` 装法不吃 semver：pnpm 把解析结果钉成 commit 写进 lockfile，之后只看
+> 包名+版本号是否满足。所以升级时要显式钉 commit（`…#<sha>`）或先摘掉再装，
+> 否则重跑同一条命令装回来的仍是旧 commit。详见核心插件 README 的升级小节。
 
 ### ⚠ 本包是 Web UI 层，profile 里必须有 `@deepseek-ai/dsh-web-app`
 
@@ -101,9 +108,16 @@ dsh --profile graphdev --no-open --port 8791
   而通用图库的浏览器产物要么几百 KB、要么需要打包器。
 - **布局是简化的三力模型**：网格加速的簇内相斥 + 边弹簧 + 向主题锚点收拢，
   固定 tick 数跑完即冻结。记忆集在两次写入之间是静止的，不需要 60fps。
-- **可测**：`normalize` / `buildLayout` / `settle` 都是纯函数，经 `__internals` 导出，
-  由 `test/graph-panel.test.mjs` 在 node 里断言（含「组内距离 < 组间 0.7 倍」这条
-  分簇是否成立的判据）。
+- **可测**：`normalize` / `buildLayout` / `settle` / `neighborsOf` 都是纯函数，经
+  `__internals` 导出，由 `test/graph-panel.test.mjs` 在 node 里断言（含「组内距离
+  < 组间 0.7 倍」这条分簇是否成立的判据）。
+
+```bash
+node test/run-all.mjs     # 本仓库自带，44 项
+```
+
+本包已独立成库（`dsh-memory-graph`），测试跟着搬过来了 —— 断言的就是这里的
+`client.js`。核心仓库那边的测试只覆盖 RPC 通道与快照投影（跨包契约），不碰渲染。
 
 ### 通道不走 `connection.rpc.handle()`（上游缺陷绕行）
 
@@ -113,8 +127,10 @@ dsh --profile graphdev --no-open --port 8791
 `cannot get property "webServer" without inject` —— 被内部 try 吃掉，路由静默没挂上，
 请求最后落到静态前端兜底（只收 GET/HEAD，其余一律 405）。
 
-改法：核心插件里 `ctx.inject(["webServer"], (child) => …)`，自己挂一条 `kind: "prefix"`
-路由，并手写信封协议（见 `plugin/src/graph/rpc.js`）：
+改法在**核心插件**那边（不在本包）：`ctx.inject(["webServer"], (child) => …)`，自己挂一条
+`kind: "prefix"` 路由，并手写信封协议。源码在核心仓库
+[dolou12388/dsh-memory-hybrid](https://github.com/dolou12388/dsh-memory-hybrid) 的
+`plugin/src/graph/rpc.js`：
 
 ```
 POST /memory-hybrid/graph      content-type: application/json
@@ -123,8 +139,8 @@ POST /memory-hybrid/graph      content-type: application/json
 ```
 
 `method` 必须等于 endpoint 段名，否则回 `gateway/bad-request` 信封；非 POST → 405 +
-`allow: POST`，非 JSON → 415，坏体 → 400。`test/graph-snapshot.test.mjs` 用假
-`webServer.register` + 最小 req/res 桩覆盖了这套分支。
+`allow: POST`，非 JSON → 415，坏体 → 400。这套分支由核心仓库的
+`test/graph-snapshot.test.mjs` 覆盖（用假 `webServer.register` + 最小 req/res 桩）。
 
 ### 两处 `inject` 是硬要求，缺一个面板就整块消失
 
@@ -144,9 +160,10 @@ Cordis 的属性访问是白名单式的，`ctx.<prop>` 未在 `inject` 里声�
 - 目前每次打开面板都重算布局，同一批数据的图形虽然可复现（初值由 id 哈希决定），
   但没做跨会话缓存。
 - 没有搜索框。邻居列表跳转已实现（详情卡底部「直接邻居」按权重降序，点击即把视角
-  平移过去并改选中）；搜索仍在 `tools/graph-lab.html` 里，尚未搬进来。
+  平移过去并改选中）；搜索还留在核心仓库的设计期探针 `tools/graph-lab.html` 里，
+  尚未搬进来。
 - **`rev` 只在取数时推进，不感知外部清库**。插件在进程内缓存快照，如果在 dsh 运行期间
-  直接改 `.sqlite`（例如 `node tools/seed-store.mjs --clear`），面板点「刷新」仍会拿回
-  旧数据 —— 必须重启 dsh。这不是 bug，是「数据只有一个出口」的代价。
+  直接改 `.sqlite`（例如核心仓库的 `tools/seed-store.mjs --clear`），面板点「刷新」仍会
+  拿回旧数据 —— 必须重启 dsh。这不是 bug，是「数据只有一个出口」的代价。
 - 档位 chip 是带 `onClick` 的 `<span>`，不是 `<button>`；自动化测试/无障碍工具按
   DOM 语义抓不到它们，只能按坐标点。
